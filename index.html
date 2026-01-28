@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>漸層背景 + Glassmorphism 輸入框</title>
+  <style>
+    :root{
+      --bg-transition-duration: 2s;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    /* 全螢幕容器 */
+    .stage{
+      position:relative;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    /* 多層漸層背景：我們用多個 layer 並以 opacity 過渡來平滑切換 */
+    .bg-layer{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      transition:opacity var(--bg-transition-duration) ease;
+      opacity:0;
+      z-index:0;
+    }
+
+    /* 預設背景（淡藍綠） */
+    .bg-default{background: linear-gradient(135deg,#89f7fe 0%, #66a6ff 100%); opacity:1;}
+
+    /* 深藍漸層 - 對應：包含『累』 */
+    .bg-blue{background: linear-gradient(135deg,#0f172a 0%, #001f3f 100%);} /* 深藍 */
+
+    /* 金黃漸層 - 對應：包含『好』或『棒』 */
+    .bg-gold{background: linear-gradient(135deg,#FFD166 0%, #F4A261 100%);} /* 金黃 */
+
+    /* 粉紫漸層 - 對應：包含『難過』 */
+    .bg-pink{background: linear-gradient(135deg,#fbc2eb 0%, #a6c1ee 100%);} /* 粉紫 */
+
+    /* 置中的玻璃輸入區塊 */
+    .glass{
+      position:relative;
+      z-index:2; /* 置於背景之上 */
+      width:min(720px, 90%);
+      padding:2rem;
+      border-radius:16px;
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      backdrop-filter: blur(10px) saturate(120%);
+      -webkit-backdrop-filter: blur(10px) saturate(120%);
+      border: 1px solid rgba(255,255,255,0.12);
+      display:flex;
+      flex-direction:column;
+      gap:0.75rem;
+    }
+
+    .title{
+      color:rgba(255,255,255,0.95);
+      font-size:1.125rem;
+      margin:0;
+    }
+
+    .hint{
+      color:rgba(255,255,255,0.75);
+      font-size:0.9rem;
+      margin:0 0 0.5rem 0;
+    }
+
+    textarea.input{
+      width:100%;
+      min-height:120px;
+      resize:vertical;
+      padding:0.8rem 1rem;
+      font-size:1rem;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: #fff;
+      outline:none;
+      transition: box-shadow 0.2s ease, transform 0.12s ease;
+      caret-color: #fff;
+    }
+
+    textarea.input:focus{
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+      transform: translateY(-1px);
+    }
+
+    /* 小說明按鈕列 */
+    .meta{display:flex;gap:0.5rem;align-items:center;justify-content:flex-end}
+    .chip{font-size:0.85rem;padding:0.35rem 0.6rem;border-radius:999px;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.04)}
+
+    /* 小螢幕調整 */
+    @media (max-width:420px){
+      .glass{padding:1rem;border-radius:12px}
+      .title{font-size:1rem}
+      textarea.input{min-height:100px}
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <!-- 背景層：opacity 控制切換 -->
+    <div class="bg-layer bg-default" id="bg-default"></div>
+    <div class="bg-layer bg-blue" id="bg-blue"></div>
+    <div class="bg-layer bg-gold" id="bg-gold"></div>
+    <div class="bg-layer bg-pink" id="bg-pink"></div>
+
+    <!-- 中間玻璃卡片輸入區 -->
+    <div class="glass" role="region" aria-label="文字輸入區">
+      <h1 class="title">輸入文字看看背景變化</h1>
+      <p class="hint">包含「累」→ 深藍，包含「好」或「棒」→ 金黃，包含「難過」→ 粉紫。切換有 2 秒平滑過渡。</p>
+
+      <textarea id="input" class="input" placeholder="在這裡輸入中文文字...（例如：我今天好累）" aria-label="主要文字輸入"></textarea>
+
+      <div class="meta">
+        <div class="chip">目前狀態：<span id="status">預設</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const input = document.getElementById('input');
+      const status = document.getElementById('status');
+
+      const layers = {
+        default: document.getElementById('bg-default'),
+        blue: document.getElementById('bg-blue'),
+        gold: document.getElementById('bg-gold'),
+        pink: document.getElementById('bg-pink')
+      };
+
+      // 幫助函式：把所有層設成透明，然後把目標設為不透明
+      function showLayer(name){
+        Object.keys(layers).forEach(k=>{
+          layers[k].style.opacity = (k===name) ? '1' : '0';
+        });
+      }
+
+      // 初始顯示
+      showLayer('default');
+
+      // 關鍵字檢查。優先順序："難過" > "累" > ("好" or "棒")
+      function evaluate(text){
+        if(!text) return 'default';
+        // 去除空白
+        const t = text.trim();
+        if(t.includes('難過')) return 'pink';
+        if(t.includes('累')) return 'blue';
+        if(t.includes('好') || t.includes('棒')) return 'gold';
+        return 'default';
+      }
+
+      // 監聽輸入事件
+      input.addEventListener('input', e=>{
+        const val = e.target.value || '';
+        const layer = evaluate(val);
+        showLayer(layer);
+        // 更新狀態文字
+        const mapLabel = {default:'預設', blue:'深藍（累）', gold:'金黃（好/棒）', pink:'粉紫（難過）'};
+        status.textContent = mapLabel[layer] || '預設';
+      });
+
+      // 如果使用者貼上文字也觸發檢查
+      input.addEventListener('paste', ()=>{
+        setTimeout(()=>{ // 等候 paste 完成
+          const layer = evaluate(input.value || '');
+          showLayer(layer);
+        }, 20);
+      });
+
+      // 可選：按下 Enter 也會暫時顯示當前狀態（不會重新載入）
+      input.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter' && e.shiftKey === false){
+          e.preventDefault();
+          // 什麼都不用做，已經會即時變色
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
