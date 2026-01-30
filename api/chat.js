@@ -25,20 +25,6 @@ export default async function handler(req) {
     }),
   });
 
-  async function getAIResponse(userText) {
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    body: JSON.stringify({ message: userText })
-  });
-
-  const data = await response.json();
-
-  // 1. 更新角落的文字
-  document.getElementById('ai-corner').innerText = data.reply;
-  
-  // 2. 直接把 AI 選的顏色套用到背景
-  document.body.style.background = data.color;
-}
 
   const data = await response.json();
   const result = JSON.parse(data.candidates[0].content.parts[0].text);
