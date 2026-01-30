@@ -106,9 +106,16 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ message: content })
             });
-
+              if (!response.ok) throw new Error('伺服器出錯');
             const data = await response.json();
-
+            if (data && data.reply) {
+                aiCorner.style.opacity = "1";
+                aiCorner.innerText = data.reply;
+                document.body.style.background = data.color;
+                textarea.value = ""; 
+              } else {
+                throw new Error('資料格式不對');
+              }
             // 更新 UI
             aiCorner.style.opacity = "1";
             aiCorner.innerText = data.reply;

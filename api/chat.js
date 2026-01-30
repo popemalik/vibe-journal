@@ -27,6 +27,10 @@ export default async function handler(req) {
           contents: [
             { parts: [{ text: `${systemPrompt}\n\n使用者說：${message}` }] }
           ],
+          // 加上這行：這會強制 AI 輸出乾淨的 JSON 格式
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
         }),
       }
     );
