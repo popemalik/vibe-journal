@@ -3,202 +3,127 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>漸層背景 + Glassmorphism 輸入框</title>
+  <title>深夜情緒電台</title>
   <style>
-    :root{
-      --bg-transition-duration: 2s;
-    }
-    html,body{
-      height:100%;
-      margin:0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
-    }
-
-    /* 全螢幕容器 */
-    .stage{
-      position:relative;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+    html, body {
+      height: 100%;
+      margin: 0;
+      /* 設定預設背景，並加入平滑過渡 */
+      background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+      transition: background 2s ease; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
     }
 
-    /* 多層漸層背景：我們用多個 layer 並以 opacity 過渡來平滑切換 */
-    .bg-layer{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      transition:opacity var(--bg-transition-duration) ease;
-      opacity:0;
-      z-index:0;
+    .glass {
+      width: min(600px, 90%);
+      padding: 2.5rem;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     }
 
-    body {
-  margin: 0;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  /* 這是靈魂：讓背景切換像呼吸一樣平滑 */
-  transition: background 1.5s ease; 
-  font-family: 'PingFang TC', sans-serif;
-}
-
-#ai-corner {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  font-size: 0.9rem;
-  color: white;
-  opacity: 0.8;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-
-    /* 預設背景（淡藍綠） */
-    .bg-default{background: linear-gradient(135deg,#89f7fe 0%, #66a6ff 100%); opacity:1;}
-
-    /* 深藍漸層 - 對應：包含『累』 */
-    .bg-blue{background: linear-gradient(135deg,#0f172a 0%, #001f3f 100%);} /* 深藍 */
-
-    /* 金黃漸層 - 對應：包含『好』或『棒』 */
-    .bg-gold{background: linear-gradient(135deg,#FFD166 0%, #F4A261 100%);} /* 金黃 */
-
-    /* 粉紫漸層 - 對應：包含『難過』 */
-    .bg-pink{background: linear-gradient(135deg,#fbc2eb 0%, #a6c1ee 100%);} /* 粉紫 */
-
-    /* 置中的玻璃輸入區塊 */
-    .glass{
-      position:relative;
-      z-index:2; /* 置於背景之上 */
-      width:min(720px, 90%);
-      padding:2rem;
-      border-radius:16px;
-      background: rgba(255,255,255,0.06);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-      backdrop-filter: blur(10px) saturate(120%);
-      -webkit-backdrop-filter: blur(10px) saturate(120%);
-      border: 1px solid rgba(255,255,255,0.12);
-      display:flex;
-      flex-direction:column;
-      gap:0.75rem;
+    .title {
+      color: white;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: 300;
+      letter-spacing: 1px;
     }
 
-    .title{
-      color:rgba(255,255,255,0.95);
-      font-size:1.125rem;
-      margin:0;
+    textarea {
+      width: 100%;
+      height: 150px;
+      background: rgba(255, 255, 255, 0.05);
+      border: none;
+      border-radius: 12px;
+      padding: 1rem;
+      color: white;
+      font-size: 1.1rem;
+      outline: none;
+      resize: none;
+      box-sizing: border-box;
+      margin-top: 1rem;
     }
 
-    .hint{
-      color:rgba(255,255,255,0.75);
-      font-size:0.9rem;
-      margin:0 0 0.5rem 0;
+    /* AI 回話的小角落 */
+    #ai-corner {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      color: white;
+      font-size: 1rem;
+      max-width: 300px;
+      text-align: right;
+      line-height: 1.6;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      transition: all 0.5s ease;
+      font-style: italic;
+      opacity: 0.9;
     }
 
-    textarea.input{
-      width:100%;
-      min-height:120px;
-      resize:vertical;
-      padding:0.8rem 1rem;
-      font-size:1rem;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.03);
-      color: #fff;
-      outline:none;
-      transition: box-shadow 0.2s ease, transform 0.12s ease;
-      caret-color: #fff;
-    }
-
-    textarea.input:focus{
-      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-      transform: translateY(-1px);
-    }
-
-    /* 小說明按鈕列 */
-    .meta{display:flex;gap:0.5rem;align-items:center;justify-content:flex-end}
-    .chip{font-size:0.85rem;padding:0.35rem 0.6rem;border-radius:999px;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.04)}
-
-    /* 小螢幕調整 */
-    @media (max-width:420px){
-      .glass{padding:1rem;border-radius:12px}
-      .title{font-size:1rem}
-      textarea.input{min-height:100px}
+    .hint {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.8rem;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
-  <div class="stage">
-    <!-- 背景層：opacity 控制切換 -->
-    <div class="bg-layer bg-default" id="bg-default"></div>
-    <div class="bg-layer bg-blue" id="bg-blue"></div>
-    <div class="bg-layer bg-gold" id="bg-gold"></div>
-    <div class="bg-layer bg-pink" id="bg-pink"></div>
 
-    <!-- 中間玻璃卡片輸入區 -->
-    <div class="glass" role="region" aria-label="文字輸入區">
-      <h1 class="title">輸入文字看看背景變化</h1>
-      <p class="hint">包含「累」→ 深藍，包含「好」或「棒」→ 金黃，包含「難過」→ 粉紫。切換有 2 秒平滑過渡。</p>
-
-      <textarea id="input" class="input" placeholder="在這裡輸入中文文字...（例如：我今天好累）" aria-label="主要文字輸入"></textarea>
-
-      <div class="meta">
-        <div class="chip">目前狀態：<span id="status">預設</span></div>
-      </div>
-    </div>
+  <div class="glass">
+    <h1 class="title">深夜隨筆</h1>
+    <textarea id="input" placeholder="說說你的心情，然後按下 Enter..."></textarea>
+    <p class="hint">按下 Enter 送出，Shift + Enter 換行</p>
   </div>
 
+  <div id="ai-corner">準備好聆聽你的心情...</div>
+
   <script>
-    async function getAIResponse(userText) {
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    body: JSON.stringify({ message: userText })
-  });
+    const textarea = document.getElementById('input');
+    const aiCorner = document.getElementById('ai-corner');
 
-  const data = await response.json();
+    // 核心邏輯：監聽 Enter 鍵
+    textarea.addEventListener('keydown', async (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault(); // 防止換行
+        const content = textarea.value.trim();
 
-const textarea = document.querySelector('textarea');
-const aiCorner = document.getElementById('ai-corner');
+        if (content) {
+          aiCorner.style.opacity = "0.5";
+          aiCorner.innerText = "主持人正在思考...";
+          
+          try {
+            // 向你寫好的 Vercel Edge Function 發送請求
+            const response = await fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: content })
+            });
 
-textarea.addEventListener('keydown', async (event) => {
-  // 偵測 Enter 鍵 (且沒按住 Shift)
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    const content = textarea.value.trim();
+            const data = await response.json();
 
-    if (content) {
-      // 顯示「正在讀取你的心情...」增加互動感
-      aiCorner.innerText = "主持人正在聽你的故事...";
-      
-      try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: content })
-        });
-
-        const data = await response.json();
-
-        // 套用 AI 的靈魂：文字 + 顏色
-        aiCorner.innerText = data.reply;
-        document.body.style.background = data.color;
-        
-      } catch (error) {
-        aiCorner.innerText = "電台訊號不穩，請再試一次...";
-        console.error("Oops:", error);
+            // 更新 UI
+            aiCorner.style.opacity = "1";
+            aiCorner.innerText = data.reply;
+            document.body.style.background = data.color;
+            
+            // 清空輸入框
+            textarea.value = "";
+            
+          } catch (error) {
+            aiCorner.innerText = "暫時斷線了，但我在這裡陪你。";
+            console.error(error);
+          }
+        }
       }
-    }
-  }
-});
-
-  // 1. 更新角落的文字
-  document.getElementById('ai-corner').innerText = data.reply;
-  
-  // 2. 直接把 AI 選的顏色套用到背景
-  document.body.style.background = data.color;
-}
+    });
   </script>
 </body>
 </html>
