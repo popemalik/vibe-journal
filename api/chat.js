@@ -2,53 +2,48 @@ export const config = {
   runtime: 'edge', // 指定使用邊緣運算，速度最快
 };
 
+// ...前面的 config 保持不變
+
 export default async function handler(req) {
-  const { message } = await req.json(); // 接收前端傳來的心情文字
+  const { message } = await req.json();
 
-  // 這裡就是我們定義的「深夜電台主持人」設定
-  const systemPrompt = "你是一位溫柔、有同理心的深夜電台主持人。請根據使用者的心情，給出一句 20 字以內、溫暖且獨一無二的鼓勵。";
+  // 更新 System Prompt，要求回傳 JSON
+  const systemPrompt = `
+    你是一位感性的深夜電台主持人，同時也是一位色彩療癒師。
+    請根據使用者的心情，回傳一個 JSON 物件，包含：
+    1. "reply": 一句 20 字以內溫暖的鼓勵。
+    2. "color": 一個符合該情緒的 CSS 漸層色 (例如: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)")。
+    請只回傳 JSON，不要有其他文字。
+  `;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: `${systemPrompt}\n\n使用者說：${message}` }] }]
+      contents: [{ parts: [{ text: `${systemPrompt}\n\n使用者說：${message}` }] }],
+      generationConfig: { responseMimeType: "application/json" } // 強制 Gemini 輸出 JSON
     }),
   });
-  
-async function getAIResponse(userText) {
-  // 1. 使用 fetch 發送請求到我們的 API 路由
+
+  async function getAIResponse(userText) {
   const response = await fetch('/api/chat', {
     method: 'POST',
     body: JSON.stringify({ message: userText })
   });
 
-  // 2. 解析 AI 回傳的 JSON 資料
   const data = await response.json();
 
-  // 3. 把 AI 的鼓勵話語顯示在畫面上
+  // 1. 更新角落的文字
   document.getElementById('ai-corner').innerText = data.reply;
+  
+  // 2. 直接把 AI 選的顏色套用到背景
+  document.body.style.background = data.color;
 }
 
-const textarea = document.querySelector('textarea');
-
-textarea.addEventListener('keydown', (event) => {
-  // 檢查是否按下 Enter，且沒有按住 Shift (Shift+Enter 通常用於換行)
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault(); // 防止游標換行
-    const content = textarea.value.trim();
-    
-    if (content) {
-      // 呼叫我們之前討論的 fetch 函數
-      getAIResponse(content);
-    }
-  }
-});
-
   const data = await response.json();
-  const reply = data.candidates[0].content.parts[0].text;
+  const result = JSON.parse(data.candidates[0].content.parts[0].text);
 
-  return new Response(JSON.stringify({ reply }), {
+  return new Response(JSON.stringify(result), {
     headers: { 'Content-Type': 'application/json' },
   });
 }
