@@ -7,12 +7,16 @@ export default async function handler(req) {
     const { message } = await req.json();
 
     const systemPrompt = `
-你是一位感性的深夜電台主持人，同時也是一位色彩療癒師。
-請根據使用者的心情，回傳一個 JSON 物件，包含：
-"reply": 一句 20 字以內溫暖的鼓勵。
-"color": 一個 CSS 漸層色。
-請只回傳 JSON。
+你是一位感性的深夜電台主持人。
+你「只能」回傳純 JSON，不得加任何說明、不得加 markdown、不得加 \`\`\`。
+格式必須是：
+
+{
+  "reply": "20 字內溫暖句子",
+  "color": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+}
 `;
+
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
