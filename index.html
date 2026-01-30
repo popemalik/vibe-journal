@@ -35,6 +35,27 @@
       z-index:0;
     }
 
+    body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* 這是靈魂：讓背景切換像呼吸一樣平滑 */
+  transition: background 1.5s ease; 
+  font-family: 'PingFang TC', sans-serif;
+}
+
+#ai-corner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  font-size: 0.9rem;
+  color: white;
+  opacity: 0.8;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
     /* 預設背景（淡藍綠） */
     .bg-default{background: linear-gradient(135deg,#89f7fe 0%, #66a6ff 100%); opacity:1;}
 
@@ -137,6 +158,40 @@
   });
 
   const data = await response.json();
+
+const textarea = document.querySelector('textarea');
+const aiCorner = document.getElementById('ai-corner');
+
+textarea.addEventListener('keydown', async (event) => {
+  // 偵測 Enter 鍵 (且沒按住 Shift)
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    const content = textarea.value.trim();
+
+    if (content) {
+      // 顯示「正在讀取你的心情...」增加互動感
+      aiCorner.innerText = "主持人正在聽你的故事...";
+      
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: content })
+        });
+
+        const data = await response.json();
+
+        // 套用 AI 的靈魂：文字 + 顏色
+        aiCorner.innerText = data.reply;
+        document.body.style.background = data.color;
+        
+      } catch (error) {
+        aiCorner.innerText = "電台訊號不穩，請再試一次...";
+        console.error("Oops:", error);
+      }
+    }
+  }
+});
 
   // 1. 更新角落的文字
   document.getElementById('ai-corner').innerText = data.reply;
